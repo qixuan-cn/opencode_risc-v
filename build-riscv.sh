@@ -29,27 +29,35 @@ check_node() {
 }
 
 build_node_from_source() {
-  # Node.js 22.12.0 在 riscv64 上编译经过社区验证可用
-  # 关键参数：
-  #   --openssl-no-asm   跳过 OpenSSL 汇编优化，避免 linux-x86_64 arch 路径带来的 -m64 错误
-  #   --without-snapshot 禁用 V8 snapshot，避免 riscv64 上的交叉构建问题
-  local ver="22.12.0"
+  # GCC 14 在 riscv64 上编译 Node.js 时有 ICE (internal compiler error: Segmentation fault) bug
+  # 无论 -O2/-O3 都会触发，根本原因是 GCC 14 的 ggc (garbage collection) 模块存在缺陷
+  # 解决方案：使用 GCC 13，该版本在 riscv64 上稳定
+  if command -v gcc-13 &>/dev/null; then
+    log "检测到 GCC 13，切换为 GCC 13 编译 Node.js..."
+    export CC=gcc-13
+    export CXX=g++-13
+  else
+    log "未找到 GCC 13，尝试安装..."
+    sudo apt-get install -y gcc-13 g++-13 || \
+      die "无法安装 GCC 13。请手动执行: sudo apt-get install gcc-13 g++-13"
+    export CC=gcc-13
+    export CXX=g++-13
+  fi
+
+  # --openssl-no-asm: 跳过 OpenSSL 平台汇编，避免 linux-x86_64 路径带入 -m64 错误
+  local ver="22.14.0"
   log "从源码编译 Node.js $ver（预计 60-90 分钟）..."
-  sudo apt-get install -y python3 g++ make
   local tmp
   tmp="$(mktemp -d)"
   log "下载 Node.js $ver 源码..."
   curl -fsSL "https://nodejs.org/dist/v${ver}/node-v${ver}.tar.gz" | tar -xz -C "$tmp"
   pushd "$tmp/node-v${ver}" > /dev/null
-  ./configure \
-    --prefix=/usr/local \
-    --openssl-no-asm \
-    --without-snapshot \
-    --without-node-snapshot
+  ./configure --prefix=/usr/local --openssl-no-asm
   make -j"$(nproc)"
   sudo make install
   popd > /dev/null
   rm -rf "$tmp"
+  unset CC CXX
 }
 
 rebuild_native_module() {
