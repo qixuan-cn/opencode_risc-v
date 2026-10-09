@@ -86,6 +86,8 @@ bash build-riscv.sh
 
 ## 构建说明
 
+> 详细的编译踩坑记录和版本选择说明见 [BUILD-NOTES.md](BUILD-NOTES.md)
+
 ### Node.js 编译参数
 
 riscv64 上编译 Node.js 需要额外参数，否则 OpenSSL 会使用 x86_64 汇编路径导致 `-m64` 错误：
