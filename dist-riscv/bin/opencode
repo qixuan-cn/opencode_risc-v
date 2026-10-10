@@ -1,0 +1,9 @@
+#!/bin/bash
+# opencode riscv64 launcher — 由 build-riscv.sh 生成
+exec node \
+  --experimental-vm-modules \
+  --conditions=node \
+  --import "/home/eswin/Downloads/opencode/dist-riscv/bun-polyfill.mjs" \
+  --import "/usr/local/lib/node_modules/tsx/dist/esm/index.mjs" \
+  "/home/eswin/Downloads/opencode/packages/opencode/src/index.ts" \
+  "$@"
